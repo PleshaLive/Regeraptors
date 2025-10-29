@@ -1,0 +1,7 @@
+[
+  {
+    "id": "sample-http-target",
+    "url": "https://example.com/cs2-gsi",
+    "enabled": true
+  }
+]

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CS2 GSI Forwarder Admin</title>
+  <link rel="stylesheet" href="/admin/static/admin.css" />
+</head>
+<body>
+  <main id="app-shell">
+    <header>
+      <h1>CS2 GSI Forwarder</h1>
+      <p class="subtitle">Live telemetry bridge and target manager</p>
+    </header>
+
+    <section id="status-banner" class="hidden" role="alert"></section>
+
+    <section id="login-view" class="card">
+      <h2>Admin Login</h2>
+      <form id="login-form" autocomplete="off">
+        <label>
+          <span>Username</span>
+          <input type="text" name="username" required autocomplete="username" />
+        </label>
+        <label>
+          <span>Password</span>
+          <input type="password" name="password" required autocomplete="current-password" />
+        </label>
+        <button type="submit">Sign In</button>
+      </form>
+    </section>
+
+    <section id="app-view" class="hidden">
+      <div class="toolbar">
+        <div>
+          <strong>Forwarder:</strong>
+          <span id="queue-mode">Loading...</span>
+        </div>
+        <div class="toolbar-actions">
+          <button type="button" id="refresh-targets">Refresh</button>
+          <button type="button" id="logout-btn">Log Out</button>
+        </div>
+      </div>
+
+      <section class="card" id="add-target-card">
+        <h2>Add Target</h2>
+        <form id="add-target-form">
+          <label>
+            <span>Endpoint URL</span>
+            <input type="url" name="url" placeholder="https://example.com/gsi" required />
+          </label>
+          <label class="toggle-label">
+            <input type="checkbox" name="enabled" checked />
+            <span>Enabled</span>
+          </label>
+          <button type="submit">Add Target</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Targets</h2>
+          <span id="targets-meta"></span>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>URL</th>
+                <th>Status</th>
+                <th>Sent</th>
+                <th>Failed</th>
+                <th>Avg Latency (ms)</th>
+                <th>Last Attempt</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="targets-body">
+              <tr class="empty">
+                <td colspan="7">No targets configured yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <template id="target-row-template">
+    <tr>
+      <td class="target-url"></td>
+      <td class="target-status"></td>
+      <td class="target-sent"></td>
+      <td class="target-failed"></td>
+      <td class="target-latency"></td>
+      <td class="target-last"></td>
+      <td class="target-actions">
+        <label class="toggle-label">
+          <input type="checkbox" class="target-enabled" />
+          <span>Enabled</span>
+        </label>
+        <button type="button" class="test-btn">Test</button>
+        <button type="button" class="delete-btn">Delete</button>
+        <div class="row-message"></div>
+      </td>
+    </tr>
+  </template>
+
+  <script type="module" src="/admin/static/admin.js"></script>
+</body>
+</html>
