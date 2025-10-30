@@ -17,7 +17,7 @@ const sleep = (ms) =>
 class Forwarder {
   constructor(targetManager) {
     this.targetManager = targetManager;
-    this.queueEnabled = config.forwardQueueEnabled;
+  this.queueEnabled = config.queueEnabled;
     this.flushMs = config.forwardFlushMs;
     this.pendingUpdate = null;
     this.dispatchChain = Promise.resolve();
@@ -31,7 +31,9 @@ class Forwarder {
           logger.error({ msg: 'Queue flush failed', error: error.message, stack: error.stack });
         });
       }, this.flushMs);
-      this.flushTimer.unref();
+      if (typeof this.flushTimer.unref === 'function') {
+        this.flushTimer.unref();
+      }
     }
   }
 

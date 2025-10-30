@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const dotenv = require('dotenv');
@@ -8,7 +9,7 @@ dotenv.config();
 
 const projectRoot = path.resolve(__dirname, '..');
 
-const toInt = (value, fallback) => {
+const coerceInt = (value, fallback) => {
   if (value === undefined || value === null || value === '') {
     return fallback;
   }
@@ -16,45 +17,63 @@ const toInt = (value, fallback) => {
   return Number.isNaN(parsed) ? fallback : parsed;
 };
 
-const toBool = (value, fallback = false) => {
+const coerceBool = (value, fallback = false) => {
   if (value === undefined || value === null) {
     return fallback;
   }
-  const normalized = String(value).trim().toLowerCase();
-  return ['1', 'true', 'yes', 'on'].includes(normalized);
+  const normalised = String(value).trim().toLowerCase();
+  return ['1', 'true', 'yes', 'on'].includes(normalised);
 };
 
-const parseList = (value) => {
-  if (!value) {
-    return [];
+const toSessionSecret = (secret) => {
+  if (secret && secret.length >= 16) {
+    return secret;
   }
-  return String(value)
-    .split(',')
-    .map((entry) => entry.trim())
-    .filter((entry) => entry.length > 0);
+  const fallback = crypto.randomBytes(32).toString('hex');
+  return fallback;
 };
 
-const whitelist = parseList(process.env.GSI_WHITELIST);
+const ensureTargetsFile = (filePath) => {
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  if (!fs.existsSync(filePath)) {
+    fs.writeFileSync(filePath, '[]\n', 'utf8');
+  }
+};
+
+const corsOrigin = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.trim() : '*';
+const allowedOrigins = corsOrigin === '*'
+  ? []
+  : corsOrigin
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter((origin) => origin.length > 0);
+const targetsFile = path.resolve(projectRoot, 'config', 'targets.json');
+ensureTargetsFile(targetsFile);
+
+const sessionSecretFromEnv = Boolean(process.env.SESSION_SECRET && process.env.SESSION_SECRET.length >= 16);
+const sessionSecret = toSessionSecret(process.env.SESSION_SECRET || '');
 
 const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
-  port: toInt(process.env.PORT, 3000),
+  port: coerceInt(process.env.PORT, 3000),
   adminUser: process.env.ADMIN_USER || '',
   adminPass: process.env.ADMIN_PASS || '',
-  adminOrigin: process.env.ADMIN_ORIGIN || '',
-  gsiWhitelist: whitelist,
-  forwardQueueEnabled: toBool(process.env.FORWARD_QUEUE, false),
-  forwardFlushMs: toInt(process.env.FORWARD_FLUSH_MS, 1000),
-  retryMax: Math.max(toInt(process.env.RETRY_MAX, 3), 1),
-  retryBaseMs: Math.max(toInt(process.env.RETRY_BASE_MS, 500), 100),
-  retryJitterMs: Math.max(toInt(process.env.RETRY_JITTER, 250), 0),
-  sessionSecret:
-    process.env.SESSION_SECRET && process.env.SESSION_SECRET.length >= 16
-      ? process.env.SESSION_SECRET
-      : crypto.randomBytes(48).toString('hex'),
-  logDir: process.env.LOG_DIR || './logs',
+  sessionSecret,
+  sessionSecretFromEnv,
+  corsOrigin,
+  allowedOrigins,
   projectRoot,
-  targetsFile: path.resolve(projectRoot, 'config', 'targets.json'),
+  targetsFile,
+  queueEnabled: coerceBool(process.env.FORWARD_QUEUE, false),
+  forwardFlushMs: coerceInt(process.env.FORWARD_FLUSH_MS, 1000),
+  retryMax: Math.max(coerceInt(process.env.RETRY_MAX, 3), 1),
+  retryBaseMs: Math.max(coerceInt(process.env.RETRY_BASE_MS, 500), 100),
+  retryJitterMs: Math.max(coerceInt(process.env.RETRY_JITTER, 250), 0),
+  logLevel: (process.env.LOG_LEVEL || 'info').toLowerCase(),
+  cookieSecure: allowedOrigins.length > 0 && allowedOrigins.every((origin) => origin.startsWith('https://')),
   isProduction: (process.env.NODE_ENV || '').toLowerCase() === 'production'
 };
 
